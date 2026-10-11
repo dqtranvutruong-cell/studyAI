@@ -44,11 +44,26 @@ const response = await fetch("https://studyai-5s0o.onrender.com/chat", {
             })
         });
 
-        const data = await response.json();
+        
+const responseText = await response.text();
 
-        if (!response.ok) {
-            throw new Error(data.error || "Đã xảy ra lỗi.");
-        }
+console.log("HTTP status:", response.status);
+console.log("Response URL:", response.url);
+console.log("Response:", responseText);
+
+let data;
+
+try {
+    data = JSON.parse(responseText);
+} catch {
+    throw new Error(
+        "Máy chủ trả về HTML thay vì JSON. Mở F12 > Console để xem chi tiết."
+    );
+}
+
+if (!response.ok) {
+    throw new Error(data.error || "Đã xảy ra lỗi.");
+}
 
         answer.textContent = "🤖 " + data.answer;
 
