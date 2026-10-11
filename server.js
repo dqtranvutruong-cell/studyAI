@@ -3,8 +3,32 @@ import express from "express";
 
 const app = express();
 
+app.use((req, res, next) => {
+    res.setHeader(
+        "Access-Control-Allow-Origin",
+        "https://dqtranvutruong-cell.github.io"
+    );
+    res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, OPTIONS"
+    );
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+    );
+
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(204);
+    }
+
+    next();
+});
+
 app.use(express.json());
-app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+    res.send("StudyAI backend is running!");
+});
 
 app.post("/chat", async (req, res) => {
     try {
@@ -39,7 +63,7 @@ app.post("/chat", async (req, res) => {
                     messages: [
                         {
                             role: "system",
-                            content: "Bạn là StudyAI, gia sư thân thiện. Giải thích bằng tiếng Việt đơn giản, từng bước, phù hợp với học sinh."
+                            content: "Bạn là StudyAI, một gia sư AI thân thiện. Giải thích bằng tiếng Việt đơn giản, từng bước, phù hợp với học sinh."
                         },
                         ...messages
                     ]
@@ -52,13 +76,15 @@ app.post("/chat", async (req, res) => {
         if (!response.ok) {
             console.error("OpenRouter error:", data);
 
-            return res.status(response.status).json({
-                error: data.error?.message || "AI đang bận hoặc đã hết hạn mức miễn phí."
+            return res.status(502).json({
+                error: "AI đang bận hoặc hạn mức miễn phí đã hết."
             });
         }
 
         res.json({
-            answer: data.choices?.[0]?.message?.content || "AI chưa trả lời được."
+            answer:
+                data.choices?.[0]?.message?.content ||
+                "AI chưa trả lời được."
         });
 
     } catch (error) {
@@ -75,3 +101,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`StudyAI đang chạy tại cổng ${PORT}`);
 });
+
+
