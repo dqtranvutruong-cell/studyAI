@@ -59,7 +59,7 @@ app.post("/chat", async (req, res) => {
                     "X-Title": "StudyAI"
                 },
                 body: JSON.stringify({
-                    model: "meta-llama/llama-3.3-70b-instruct:free",
+                    model: "openrouter/free",
                     messages: [
                         {
                             role: "system",
