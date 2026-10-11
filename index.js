@@ -32,7 +32,9 @@ form.addEventListener("submit", async (event) => {
     messages.appendChild(answer);
 
     try {
-        const response = await fetch("/chat", {
+        
+const response = await fetch("https://studyai-5s0o.onrender.com/chat", {
+
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
