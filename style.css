@@ -596,3 +596,81 @@ body,
     transition: background-color 0.2s ease, color 0.2s ease,
                 border-color 0.2s ease;
 }
+
+/* ===== Sửa màu giao diện sáng StudyAI ===== */
+
+body[data-theme="light"] {
+    background: #ffffff !important;
+    color: #212121 !important;
+}
+
+body[data-theme="light"] .sidebar {
+    background: #f5f5f5 !important;
+    color: #212121 !important;
+    border-color: #e5e5e5 !important;
+}
+
+body[data-theme="light"] .main,
+body[data-theme="light"] .chat-area,
+body[data-theme="light"] .topbar {
+    background: #ffffff !important;
+    color: #212121 !important;
+}
+
+body[data-theme="light"] .composer {
+    background: #ffffff !important;
+    border-color: #d9d9d9 !important;
+}
+
+body[data-theme="light"] #question {
+    background: transparent !important;
+    color: #212121 !important;
+}
+
+body[data-theme="light"] #question::placeholder {
+    color: #777777 !important;
+}
+
+body[data-theme="light"] .welcome h1,
+body[data-theme="light"] .brand,
+body[data-theme="light"] .mobile-brand,
+body[data-theme="light"] .topbar-label,
+body[data-theme="light"] .profile,
+body[data-theme="light"] .history-open {
+    color: #212121 !important;
+}
+
+body[data-theme="light"] .welcome p,
+body[data-theme="light"] .disclaimer {
+    color: #666666 !important;
+}
+
+body[data-theme="light"] .new-chat,
+body[data-theme="light"] .icon-button {
+    background: transparent !important;
+    color: #212121 !important;
+    border-color: #dddddd !important;
+}
+
+body[data-theme="light"] .history-row:hover,
+body[data-theme="light"] .history-row.active {
+    background: #e5e5e5 !important;
+}
+
+body[data-theme="light"] .message {
+    color: #212121 !important;
+}
+
+body[data-theme="light"] .user-message {
+    background: #f0f0f0 !important;
+}
+
+body[data-theme="light"] .assistant-message {
+    background: transparent !important;
+}
+
+body[data-theme="light"] .theme-toggle {
+    background: #eeeeee !important;
+    color: #212121 !important;
+    border-color: #dddddd !important;
+}
