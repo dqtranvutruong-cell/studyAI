@@ -34,11 +34,16 @@
 
     <main class="main">
         <header class="topbar">
-            <button type="button" id="menuBtn" class="icon-button"
-                    aria-label="Mở thanh bên">☰</button>
-            <div class="mobile-brand">StudyAI <span>⌄</span></div>
-            <div class="topbar-label">Gia sư AI</div>
-        </header>
+    <button type="button" id="menuBtn" class="icon-button"
+            aria-label="Mở thanh bên">☰</button>
+
+    <div class="mobile-brand">StudyAI <span>⌄</span></div>
+    <div class="topbar-label">Gia sư AI</div>
+
+    <button type="button" id="themeToggle"
+            class="theme-toggle" aria-label="Chuyển giao diện sáng tối"
+            title="Đổi giao diện">☀️</button>
+</header>
 
         <section class="chat-area">
             <div id="messages" class="messages">
@@ -70,6 +75,28 @@
     </main>
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <script src="index.js"></script>
+   <script>
+    const themeToggle = document.getElementById("themeToggle");
+    const savedTheme = localStorage.getItem("studyAI_theme");
+    const initialTheme = savedTheme === "light" ? "light" : "dark";
+
+    function applyTheme(theme) {
+        document.body.dataset.theme = theme;
+        themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
+        themeToggle.title = theme === "dark"
+            ? "Chuyển sang giao diện sáng"
+            : "Chuyển sang giao diện tối";
+        localStorage.setItem("studyAI_theme", theme);
+    }
+
+    applyTheme(initialTheme);
+
+    themeToggle.addEventListener("click", () => {
+        const nextTheme =
+            document.body.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(nextTheme);
+    });
+</script>
+<script src="index.js"></script>
 </body>
 </html>
