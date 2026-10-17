@@ -464,3 +464,135 @@ body {
     font-size: 12px;
     line-height: 1.5;
 }
+
+/* ===== Nút chuyển giao diện ===== */
+
+.theme-toggle {
+    margin-left: auto;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border: 1px solid #444;
+    border-radius: 50%;
+    background: #2b2b2b;
+    color: #fff;
+    font-size: 19px;
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    background: #414141;
+}
+
+/* ===== Giao diện sáng ===== */
+
+body[data-theme="light"] {
+    background: #ffffff;
+    color: #212121;
+}
+
+body[data-theme="light"] .sidebar {
+    background: #f5f5f5;
+    color: #212121;
+    border-color: #e5e5e5;
+}
+
+body[data-theme="light"] .main,
+body[data-theme="light"] .chat-area {
+    background: #ffffff;
+    color: #212121;
+}
+
+body[data-theme="light"] .topbar {
+    background: #ffffff;
+    color: #212121;
+}
+
+body[data-theme="light"] .brand,
+body[data-theme="light"] .mobile-brand,
+body[data-theme="light"] .topbar-label,
+body[data-theme="light"] .profile,
+body[data-theme="light"] .welcome h1 {
+    color: #212121;
+}
+
+body[data-theme="light"] .welcome p,
+body[data-theme="light"] .disclaimer {
+    color: #666666;
+}
+
+body[data-theme="light"] .new-chat,
+body[data-theme="light"] .icon-button {
+    background: transparent;
+    color: #212121;
+    border-color: #d9d9d9;
+}
+
+body[data-theme="light"] .new-chat:hover,
+body[data-theme="light"] .icon-button:hover {
+    background: #e8e8e8;
+}
+
+body[data-theme="light"] .history-row:hover,
+body[data-theme="light"] .history-row.active {
+    background: #e5e5e5;
+}
+
+body[data-theme="light"] .history-open {
+    color: #212121;
+}
+
+body[data-theme="light"] .history-delete {
+    color: #666666;
+}
+
+body[data-theme="light"] .history-delete:hover {
+    background: #d8d8d8;
+    color: #111111;
+}
+
+body[data-theme="light"] .composer {
+    background: #ffffff;
+    border-color: #d9d9d9;
+}
+
+body[data-theme="light"] #question {
+    color: #212121;
+}
+
+body[data-theme="light"] #question::placeholder {
+    color: #777777;
+}
+
+body[data-theme="light"] .message {
+    color: #212121;
+}
+
+body[data-theme="light"] .user-message {
+    background: #f0f0f0;
+}
+
+body[data-theme="light"] .assistant-message {
+    background: transparent;
+}
+
+body[data-theme="light"] .theme-toggle {
+    background: #eeeeee;
+    border-color: #dddddd;
+    color: #212121;
+}
+
+body[data-theme="light"] .theme-toggle:hover {
+    background: #dddddd;
+}
+
+body,
+.sidebar,
+.main,
+.topbar,
+.chat-area,
+.composer,
+.theme-toggle {
+    transition: background-color 0.2s ease, color 0.2s ease,
+                border-color 0.2s ease;
+}
