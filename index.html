@@ -4,29 +4,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#212121">
     <title>StudyAI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main class="chat">
-        <h2>📚 StudyAI</h2>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="brand">
+                <div class="brand-icon">S</div>
+                <span>StudyAI</span>
+            </div>
 
-        <div id="messages">
-            <p class="message">Xin chào bro! Hôm nay muốn học gì?</p>
+            <button type="button" id="newChatBtn" class="new-chat">
+                <span>＋</span> Cuộc trò chuyện mới
+            </button>
         </div>
 
-        <form id="chatForm">
-            <input
-                id="question"
-                type="text"
-                placeholder="Nhập câu hỏi của bro..."
-                autocomplete="off"
-                required
-            >
-            <button type="submit">Gửi</button>
-        </form>
+        <div class="sidebar-bottom">
+            <div class="profile">
+                <div class="avatar">S</div>
+                <div>
+                    <strong>StudyAI</strong>
+                    <small>Trợ lý học tập</small>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <button type="button" id="menuBtn" class="icon-button"
+                    aria-label="Mở thanh bên">☰</button>
+            <div class="mobile-brand">StudyAI <span>⌄</span></div>
+            <div class="topbar-label">Gia sư AI</div>
+        </header>
+
+        <section class="chat-area">
+            <div id="messages" class="messages">
+                <div class="welcome" id="welcome">
+                    <div class="welcome-icon">✳</div>
+                    <h1>Hôm nay bro muốn học gì?</h1>
+                    <p>Hỏi bài, giải thích kiến thức hoặc cùng StudyAI luyện tập nhé.</p>
+                </div>
+            </div>
+
+            <div class="composer-wrap">
+                <form id="chatForm" class="composer">
+                    <input
+                        id="question"
+                        type="text"
+                        placeholder="Nhắn tin cho StudyAI..."
+                        autocomplete="off"
+                        aria-label="Nhập câu hỏi"
+                        required
+                    >
+                    <button type="submit" aria-label="Gửi câu hỏi"
+                            class="send-button">↑</button>
+                </form>
+                <p class="disclaimer">
+                    StudyAI có thể mắc lỗi. Hãy kiểm tra lại thông tin quan trọng nhé.
+                </p>
+            </div>
+        </section>
     </main>
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <script src="index.js"></script>
 </body>
 </html>
