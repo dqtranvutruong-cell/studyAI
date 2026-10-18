@@ -68,6 +68,7 @@ function renderChatList() {
         list.className = "chat-history";
 
         const sidebarTop = document.querySelector(".sidebar-top");
+        if (!sidebarTop) return;
         sidebarTop.appendChild(list);
     }
 
@@ -99,6 +100,7 @@ function renderChatList() {
         openButton.className = "history-open";
         openButton.textContent = chat.title;
         openButton.title = chat.title;
+
         openButton.addEventListener("click", () => {
             if (busy) return;
             currentChatId = chat.id;
@@ -114,7 +116,7 @@ function renderChatList() {
         deleteButton.title = "Xóa cuộc trò chuyện";
         deleteButton.setAttribute("aria-label", "Xóa " + chat.title);
 
-        deleteButton.addEventListener("click", (event) => {
+        deleteButton.addEventListener("click", event => {
             event.stopPropagation();
 
             if (busy && chat.id === currentChatId) return;
@@ -161,22 +163,84 @@ function renderChat() {
     }
 
     for (const message of chat.messages) {
-        addMessageToScreen(message.role, message.content);
+        const element = addMessageToScreen(
+            message.role,
+            message.content
+        );
+
+        if (message.role === "assistant" && message.content) {
+            addCopyButton(element, message.content);
+        }
+
+        if (message.role === "user" && message.failed) {
+            addRetryButton(element, message.content);
+        }
     }
 
     messages.scrollTop = messages.scrollHeight;
 }
 
 function addMessageToScreen(role, content) {
-    const element = document.createElement("p");
+    const element = document.createElement("div");
     element.className = "message " +
         (role === "user" ? "user-message" : "assistant-message");
 
-    element.textContent =
-        (role === "user" ? "🧑 " : "🤖 ") + content;
+    const text = document.createElement("p");
+    text.className = "message-text";
+    text.textContent = (role === "user" ? "🧑 " : "🤖 ") + content;
 
+    element.appendChild(text);
     messages.appendChild(element);
+
     return element;
+}
+
+function addCopyButton(element, content) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "message-action";
+    button.textContent = "📋 Sao chép";
+
+    button.addEventListener("click", async () => {
+        try {
+            await navigator.clipboard.writeText(content);
+            button.textContent = "✓ Đã sao chép";
+        } catch {
+            button.textContent = "Không sao chép được";
+        }
+
+        setTimeout(() => {
+            button.textContent = "📋 Sao chép";
+        }, 1800);
+    });
+
+    element.appendChild(button);
+}
+
+function addRetryButton(element, question) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "message-action retry-button";
+    button.textContent = "↻ Thử lại";
+
+    button.addEventListener("click", () => {
+        if (busy) return;
+
+        const chat = getCurrentChat();
+        if (!chat) return;
+
+        const questionIndex = chat.messages.findIndex(
+            message => message.role === "user" &&
+                message.content === question &&
+                message.failed
+        );
+
+        if (questionIndex === -1) return;
+
+        retryQuestion(chat, questionIndex);
+    });
+
+    element.appendChild(button);
 }
 
 function updateChatTitle(chat, question) {
@@ -187,32 +251,141 @@ function updateChatTitle(chat, question) {
         : question;
 }
 
-form.addEventListener("submit", async (event) => {
+async function requestAnswer(chat) {
+    const apiMessages = chat.messages
+        .filter(message => !message.failed)
+        .map(message => ({
+            role: message.role,
+            content: message.content
+        }));
+
+    const response = await fetch(
+        "https://studyai-5s0o.onrender.com/chat",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ messages: apiMessages })
+        }
+    );
+
+    const responseText = await response.text();
+
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch {
+        throw new Error(
+            "Máy chủ trả về dữ liệu không hợp lệ. Hãy thử lại sau."
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(data.error || "Đã xảy ra lỗi.");
+    }
+
+    if (typeof data.answer !== "string" || !data.answer.trim()) {
+        throw new Error("AI chưa trả về câu trả lời.");
+    }
+
+    return data.answer;
+}
+
+async function sendQuestion(chat, question, userMessage, answerElement) {
+    if (busy) return;
+    busy = true;
+
+    userMessage.failed = false;
+    answerElement.textContent = "🤖 StudyAI đang suy nghĩ...";
+
+    const retryButton = userMessage.element?.querySelector(".retry-button");
+    retryButton?.remove();
+
+    saveChats();
+
+    try {
+        const answer = await requestAnswer(chat);
+
+        answerElement.textContent = "🤖 " + answer;
+
+        chat.messages.push({
+            role: "assistant",
+            content: answer
+        });
+
+        addCopyButton(answerElement.parentElement || answerElement, answer);
+        chat.updatedAt = Date.now();
+        saveChats();
+
+    } catch (error) {
+        userMessage.failed = true;
+
+        answerElement.textContent = "⚠️ " + error.message;
+
+        const userElement = userMessage.element;
+        if (userElement) {
+            addRetryButton(userElement, userMessage.content);
+        }
+
+        saveChats();
+    } finally {
+        busy = false;
+        renderChatList();
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+async function retryQuestion(chat, questionIndex) {
+    if (busy || chat.id !== currentChatId) return;
+
+    const userMessage = chat.messages[questionIndex];
+    if (!userMessage || !userMessage.failed) return;
+
+    // Xóa các câu trả lời lỗi hoặc câu hỏi phát sinh sau câu cần thử lại.
+    chat.messages = chat.messages.slice(0, questionIndex + 1);
+    userMessage.failed = false;
+
+    renderChat();
+
+    const userElements = messages.querySelectorAll(".user-message");
+    const userElement = userElements[userElements.length - 1];
+
+    const answerElement = addMessageToScreen(
+        "assistant",
+        "StudyAI đang suy nghĩ..."
+    );
+
+    userMessage.element = userElement;
+
+    await sendQuestion(chat, userMessage.content, userMessage, answerElement);
+}
+
+form.addEventListener("submit", async event => {
     event.preventDefault();
 
     const question = input.value.trim();
     if (!question || busy) return;
 
-    if (!currentChatId) {
-        createChat();
-    }
+    if (!currentChatId) createChat();
 
     const chat = getCurrentChat();
     if (!chat) return;
 
     const userMessage = {
         role: "user",
-        content: question
+        content: question,
+        failed: false
     };
 
     chat.messages.push(userMessage);
     updateChatTitle(chat, question);
     chat.updatedAt = Date.now();
 
-    addMessageToScreen("user", question);
+    const userElement = addMessageToScreen("user", question);
+    userMessage.element = userElement;
 
     input.value = "";
-    busy = true;
 
     const answerElement = addMessageToScreen(
         "assistant",
@@ -223,63 +396,7 @@ form.addEventListener("submit", async (event) => {
     renderChatList();
     messages.scrollTop = messages.scrollHeight;
 
-    try {
-        // Chỉ gửi lịch sử hội thoại, không gửi phần chữ trạng thái đang suy nghĩ.
-        const apiMessages = chat.messages.map(message => ({
-            role: message.role,
-            content: message.content
-        }));
-
-        const response = await fetch(
-            "https://studyai-5s0o.onrender.com/chat",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    messages: apiMessages
-                })
-            }
-        );
-
-        const responseText = await response.text();
-
-        let data;
-
-        try {
-            data = JSON.parse(responseText);
-        } catch {
-            throw new Error(
-                "Máy chủ trả về dữ liệu không hợp lệ. Hãy thử lại sau."
-            );
-        }
-
-        if (!response.ok) {
-            throw new Error(data.error || "Đã xảy ra lỗi.");
-        }
-
-        if (typeof data.answer !== "string" || !data.answer.trim()) {
-            throw new Error("AI chưa trả về câu trả lời.");
-        }
-
-        answerElement.textContent = "🤖 " + data.answer;
-
-        chat.messages.push({
-            role: "assistant",
-            content: data.answer
-        });
-
-        chat.updatedAt = Date.now();
-        saveChats();
-
-    } catch (error) {
-        answerElement.textContent = "⚠️ " + error.message;
-    } finally {
-        busy = false;
-        renderChatList();
-        messages.scrollTop = messages.scrollHeight;
-    }
+    await sendQuestion(chat, question, userMessage, answerElement);
 });
 
 newChatBtn?.addEventListener("click", () => {
