@@ -168,6 +168,33 @@ function renderChat() {
             message.content
         );
 
+function addRetryButton(container, retryCallback) {
+    // Không tạo trùng nút thử lại.
+    if (container.querySelector(".retry-button")) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "retry-button";
+    button.textContent = "🔄 Thử lại";
+    button.title = "Gửi lại câu hỏi này cho StudyAI";
+
+    button.addEventListener("click", async () => {
+        if (busy) return;
+
+        button.disabled = true;
+        button.textContent = "Đang thử lại...";
+
+        try {
+            await retryCallback();
+        } finally {
+            // Nếu thử lại thất bại, callback sẽ tạo nút mới.
+            if (button.isConnected) button.remove();
+        }
+    });
+
+    container.appendChild(button);
+}
+
         if (message.role === "assistant" && message.content) {
             addCopyButton(element, message.content);
         }
