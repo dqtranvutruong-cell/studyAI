@@ -674,3 +674,42 @@ body[data-theme="light"] .theme-toggle {
     color: #212121 !important;
     border-color: #dddddd !important;
 }
+
+/* ===== Nút thao tác tin nhắn ===== */
+
+.message {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.message-text {
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.65;
+}
+
+.message-action {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border: 1px solid #666;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.message-action:hover {
+    background: #444;
+}
+
+body[data-theme="light"] .message-action {
+    border-color: #ccc;
+    color: #333;
+}
+
+body[data-theme="light"] .message-action:hover {
+    background: #eee;
+}
