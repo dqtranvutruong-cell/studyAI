@@ -8,6 +8,7 @@ const menuBtn = document.getElementById("menuBtn");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 
 const STORAGE_KEY = "studyAI_chats_v1";
+const API_URL = "https://studyai-5s0o.onrender.com/chat";
 
 let chats = loadChats();
 let currentChatId = null;
@@ -21,14 +22,42 @@ function makeId() {
 function loadChats() {
     try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        return Array.isArray(saved) ? saved : [];
-    } catch {
+
+        if (!Array.isArray(saved)) return [];
+
+        return saved
+            .filter(chat =>
+                chat &&
+                typeof chat.id === "string" &&
+                Array.isArray(chat.messages)
+            )
+            .map(chat => ({
+                ...chat,
+                title: chat.title || "Cuộc trò chuyện mới",
+                updatedAt: chat.updatedAt || Date.now(),
+                messages: chat.messages
+                    .filter(message =>
+                        message &&
+                        ["user", "assistant"].includes(message.role) &&
+                        typeof message.content === "string"
+                    )
+                    .map(message => ({
+                        role: message.role,
+                        content: message.content,
+                        ...(message.role === "user" && message.failed
+                            ? { failed: true }
+                            : {})
+                    }))
+            }));
+    } catch (error) {
+        console.error("Không thể đọc lịch sử chat:", error);
         return [];
     }
 }
 
 function saveChats() {
     try {
+        // Chỉ lưu dữ liệu cần thiết, không lưu phần tử HTML.
         localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
     } catch (error) {
         console.error("Không thể lưu lịch sử chat:", error);
@@ -49,6 +78,7 @@ function createChat() {
 
     chats.unshift(chat);
     currentChatId = chat.id;
+
     saveChats();
     renderChat();
     renderChatList();
@@ -69,6 +99,7 @@ function renderChatList() {
 
         const sidebarTop = document.querySelector(".sidebar-top");
         if (!sidebarTop) return;
+
         sidebarTop.appendChild(list);
     }
 
@@ -103,6 +134,7 @@ function renderChatList() {
 
         openButton.addEventListener("click", () => {
             if (busy) return;
+
             currentChatId = chat.id;
             renderChat();
             renderChatList();
@@ -168,39 +200,17 @@ function renderChat() {
             message.content
         );
 
-function addRetryButton(container, retryCallback) {
-    // Không tạo trùng nút thử lại.
-    if (container.querySelector(".retry-button")) return;
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "retry-button";
-    button.textContent = "🔄 Thử lại";
-    button.title = "Gửi lại câu hỏi này cho StudyAI";
-
-    button.addEventListener("click", async () => {
-        if (busy) return;
-
-        button.disabled = true;
-        button.textContent = "Đang thử lại...";
-
-        try {
-            await retryCallback();
-        } finally {
-            // Nếu thử lại thất bại, callback sẽ tạo nút mới.
-            if (button.isConnected) button.remove();
-        }
-    });
-
-    container.appendChild(button);
-}
-
-        if (message.role === "assistant" && message.content) {
+        if (message.role === "assistant") {
             addCopyButton(element, message.content);
         }
 
         if (message.role === "user" && message.failed) {
-            addRetryButton(element, message.content);
+            const errorText = document.createElement("p");
+            errorText.className = "retry-error";
+            errorText.textContent = "⚠️ Chưa nhận được câu trả lời.";
+            element.appendChild(errorText);
+
+            addRetryButton(element, chat, message);
         }
     }
 
@@ -209,12 +219,14 @@ function addRetryButton(container, retryCallback) {
 
 function addMessageToScreen(role, content) {
     const element = document.createElement("div");
+
     element.className = "message " +
         (role === "user" ? "user-message" : "assistant-message");
 
     const text = document.createElement("p");
     text.className = "message-text";
-    text.textContent = (role === "user" ? "🧑 " : "🤖 ") + content;
+    text.textContent =
+        (role === "user" ? "🧑 " : "🤖 ") + content;
 
     element.appendChild(text);
     messages.appendChild(element);
@@ -224,6 +236,7 @@ function addMessageToScreen(role, content) {
 
 function addCopyButton(element, content) {
     const button = document.createElement("button");
+
     button.type = "button";
     button.className = "message-action";
     button.textContent = "📋 Sao chép";
@@ -244,27 +257,30 @@ function addCopyButton(element, content) {
     element.appendChild(button);
 }
 
-function addRetryButton(element, question) {
+function addRetryButton(element, chat, userMessage) {
+    // Không tạo nút thử lại trùng nhau.
+    if (element.querySelector(".retry-button")) return;
+
     const button = document.createElement("button");
+
     button.type = "button";
     button.className = "message-action retry-button";
     button.textContent = "↻ Thử lại";
+    button.title = "Gửi lại câu hỏi này";
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         if (busy) return;
 
-        const chat = getCurrentChat();
-        if (!chat) return;
+        // Chỉ thử lại nếu câu hỏi vẫn nằm trong cuộc trò chuyện.
+        if (
+            chat.id !== currentChatId ||
+            !chat.messages.includes(userMessage) ||
+            !userMessage.failed
+        ) {
+            return;
+        }
 
-        const questionIndex = chat.messages.findIndex(
-            message => message.role === "user" &&
-                message.content === question &&
-                message.failed
-        );
-
-        if (questionIndex === -1) return;
-
-        retryQuestion(chat, questionIndex);
+        await retryQuestion(chat, userMessage);
     });
 
     element.appendChild(button);
@@ -279,6 +295,7 @@ function updateChatTitle(chat, question) {
 }
 
 async function requestAnswer(chat) {
+    // Không gửi lại các câu hỏi đã thất bại.
     const apiMessages = chat.messages
         .filter(message => !message.failed)
         .map(message => ({
@@ -286,20 +303,20 @@ async function requestAnswer(chat) {
             content: message.content
         }));
 
-    const response = await fetch(
-        "https://studyai-5s0o.onrender.com/chat",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ messages: apiMessages })
-        }
-    );
+    const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            messages: apiMessages
+        })
+    });
 
     const responseText = await response.text();
 
     let data;
+
     try {
         data = JSON.parse(responseText);
     } catch {
@@ -312,50 +329,56 @@ async function requestAnswer(chat) {
         throw new Error(data.error || "Đã xảy ra lỗi.");
     }
 
-    if (typeof data.answer !== "string" || !data.answer.trim()) {
+    if (
+        typeof data.answer !== "string" ||
+        !data.answer.trim()
+    ) {
         throw new Error("AI chưa trả về câu trả lời.");
     }
 
     return data.answer;
 }
 
-async function sendQuestion(chat, question, userMessage, answerElement) {
+async function sendQuestion(chat, userMessage) {
     if (busy) return;
+
     busy = true;
-
     userMessage.failed = false;
-    answerElement.textContent = "🤖 StudyAI đang suy nghĩ...";
 
-    const retryButton = userMessage.element?.querySelector(".retry-button");
-    retryButton?.remove();
+    const answerElement = addMessageToScreen(
+        "assistant",
+        "StudyAI đang suy nghĩ..."
+    );
 
     saveChats();
+    renderChatList();
 
     try {
         const answer = await requestAnswer(chat);
 
-        answerElement.textContent = "🤖 " + answer;
+        // Thay nội dung trạng thái bằng câu trả lời.
+        answerElement.querySelector(".message-text").textContent =
+            "🤖 " + answer;
+
+        addCopyButton(answerElement, answer);
 
         chat.messages.push({
             role: "assistant",
             content: answer
         });
 
-        addCopyButton(answerElement.parentElement || answerElement, answer);
         chat.updatedAt = Date.now();
         saveChats();
 
     } catch (error) {
+        // Không lưu lỗi thành tin nhắn assistant.
+        // Câu hỏi được đánh dấu để có thể thử lại.
         userMessage.failed = true;
 
-        answerElement.textContent = "⚠️ " + error.message;
-
-        const userElement = userMessage.element;
-        if (userElement) {
-            addRetryButton(userElement, userMessage.content);
-        }
+        answerElement.remove();
 
         saveChats();
+        renderChat();
     } finally {
         busy = false;
         renderChatList();
@@ -363,29 +386,19 @@ async function sendQuestion(chat, question, userMessage, answerElement) {
     }
 }
 
-async function retryQuestion(chat, questionIndex) {
+async function retryQuestion(chat, userMessage) {
     if (busy || chat.id !== currentChatId) return;
 
-    const userMessage = chat.messages[questionIndex];
-    if (!userMessage || !userMessage.failed) return;
+    if (
+        !chat.messages.includes(userMessage) ||
+        !userMessage.failed
+    ) {
+        return;
+    }
 
-    // Xóa các câu trả lời lỗi hoặc câu hỏi phát sinh sau câu cần thử lại.
-    chat.messages = chat.messages.slice(0, questionIndex + 1);
-    userMessage.failed = false;
-
-    renderChat();
-
-    const userElements = messages.querySelectorAll(".user-message");
-    const userElement = userElements[userElements.length - 1];
-
-    const answerElement = addMessageToScreen(
-        "assistant",
-        "StudyAI đang suy nghĩ..."
-    );
-
-    userMessage.element = userElement;
-
-    await sendQuestion(chat, userMessage.content, userMessage, answerElement);
+    // Giữ nguyên toàn bộ lịch sử; chỉ bỏ cờ lỗi của câu hỏi này.
+    // requestAnswer sẽ gửi câu hỏi lại cùng ngữ cảnh hợp lệ.
+    await sendQuestion(chat, userMessage);
 }
 
 form.addEventListener("submit", async event => {
@@ -406,28 +419,23 @@ form.addEventListener("submit", async event => {
     };
 
     chat.messages.push(userMessage);
+
     updateChatTitle(chat, question);
     chat.updatedAt = Date.now();
 
-    const userElement = addMessageToScreen("user", question);
-    userMessage.element = userElement;
-
+    addMessageToScreen("user", question);
     input.value = "";
-
-    const answerElement = addMessageToScreen(
-        "assistant",
-        "StudyAI đang suy nghĩ..."
-    );
 
     saveChats();
     renderChatList();
     messages.scrollTop = messages.scrollHeight;
 
-    await sendQuestion(chat, question, userMessage, answerElement);
+    await sendQuestion(chat, userMessage);
 });
 
 newChatBtn?.addEventListener("click", () => {
     if (busy) return;
+
     createChat();
     closeSidebar();
 });
@@ -438,7 +446,7 @@ menuBtn?.addEventListener("click", () => {
 
 sidebarOverlay?.addEventListener("click", closeSidebar);
 
-// Khôi phục lịch sử sau khi tải lại trang.
+// Khôi phục cuộc trò chuyện gần nhất sau khi tải lại trang.
 if (chats.length > 0) {
     currentChatId = chats[0].id;
 }
