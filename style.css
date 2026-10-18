@@ -713,3 +713,18 @@ body[data-theme="light"] .message-action {
 body[data-theme="light"] .message-action:hover {
     background: #eee;
 }
+
+.retry-button {
+    cursor: pointer;
+}
+
+.retry-button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.retry-error {
+    margin: 8px 0;
+    color: #d97706;
+    font-size: 13px;
+}
